@@ -9,3 +9,10 @@ EncuestaDistrital/.~lock.*
 __pycache__/
 *.pyc
 .venv/
+
+# Variables de entorno y credenciales
+.env
+.env.local
+.env.production
+*.pem
+*.key
