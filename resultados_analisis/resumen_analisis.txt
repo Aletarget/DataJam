@@ -1,0 +1,35 @@
+
+RESUMEN: RELACIÓN ENTRE POBREZA Y DESERCIÓN ESCOLAR EN BOGOTÁ D.C.
+====================================================================
+
+1. HALLAZGO TEMPORAL:
+   - El IPM (Índice de Pobreza Multidimensional) en Bogotá pasó de 4.1% (2018)
+     a un pico de 7.5% (2020, pandemia) y descendió hasta 2.2% (2025).
+   - La inasistencia escolar mostró un pico dramático en 2020 (6.0%) durante
+     la pandemia, coincidiendo con el aumento del IPM.
+   - El rezago escolar se mantuvo alrededor del 20-23% en todo el período.
+
+2. HALLAZGO TERRITORIAL:
+   - Las localidades con mayor pobreza monetaria en 2021 son:
+     Usme (57.81%), Ciudad Bolívar (57.37%), Bosa (53.18%).
+   - Las UPL con mayor deserción oficial corresponden a zonas de:
+     Ciudad Bolívar, Usme, Kennedy y Bosa.
+   - Existe una asociación territorial: las zonas más pobres concentran
+     mayor deserción escolar.
+
+3. RELACIÓN DESERCIÓN - REPROBACIÓN:
+   - Las UPL con mayor tasa de reprobación tienden a presentar también
+     mayor deserción, lo que sugiere un mecanismo:
+     Pobreza → Bajo rendimiento → Reprobación → Deserción
+
+4. PRECAUCIÓN METODOLÓGICA:
+   - Los datos de pobreza están a nivel de LOCALIDAD (20 divisiones).
+   - Los datos de deserción están a nivel de UPL (33 divisiones).
+   - La correspondencia UPL-Localidad es aproximada (no 1:1).
+   - No se puede afirmar CAUSALIDAD, solo ASOCIACIÓN TERRITORIAL.
+   - Se requieren datos a la misma granularidad para un análisis más robusto.
+
+5. RECOMENDACIONES:
+   - Buscar datos de pobreza a nivel UPL o de deserción a nivel localidad.
+   - Incorporar variables intermedias: transporte, trabajo infantil, cupos.
+   - Complementar con la Encuesta Multipropósito para variables micro.

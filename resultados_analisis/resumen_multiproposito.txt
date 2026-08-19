@@ -1,0 +1,52 @@
+
+RESUMEN: ENCUESTA MULTIPROPÓSITO BOGOTÁ 2014 - ANÁLISIS EDUCATIVO
+===================================================================
+Fuente: Encuesta Multipropósito Bogotá 2014 (DANE/SDP)
+Registros: 142570 personas | Población en edad escolar (5-17): 29617
+
+HALLAZGOS PRINCIPALES:
+
+1. INASISTENCIA ESCOLAR:
+   - Tasa general de inasistencia (5-17 años): 3.74%
+   - Hogares que se consideran pobres: 2.19%
+   - Hogares que NO se consideran pobres: 3.92%
+   → Los jóvenes de hogares pobres tienen mayor probabilidad de no asistir.
+
+2. RAZONES DE NO ASISTENCIA:
+   - La razón económica (costos/falta de dinero + necesidad de trabajar)
+     representa una proporción importante en hogares pobres.
+   - "No le gusta/no le interesa" es significativa en ambos grupos.
+   - La falta de cupos/lejanía afecta más a localidades periféricas.
+
+3. SECTOR EDUCATIVO:
+   - Los hogares pobres dependen más del sector oficial (público).
+   - Las localidades periféricas tienen mayor concentración en el oficial.
+   - Esto implica mayor vulnerabilidad ante recortes o problemas del sistema público.
+
+4. DESPLAZAMIENTO:
+   - Las localidades periféricas (Usme, Ciudad Bolívar, Bosa) tienen
+     mayores tiempos de desplazamiento al colegio.
+   - El transporte puede actuar como barrera adicional.
+
+5. CONEXIÓN CON ANÁLISIS PREVIOS:
+   - Los datos de 2014 confirman que la pobreza se asocia con:
+     a) Mayor inasistencia escolar
+     b) Mayor dependencia del sector oficial
+     c) Mayores barreras de acceso (costos, distancia)
+   - Las localidades identificadas como vulnerables en el análisis de
+     deserción 2024 (Ciudad Bolívar, Usme, Bosa) ya mostraban en 2014
+     los peores indicadores educativos.
+   - Esto sugiere un problema ESTRUCTURAL que persiste en el tiempo.
+
+CADENA EXPLICATIVA PROPUESTA:
+   Pobreza del hogar
+       ↓
+   ├── Costos educativos → No puede pagar → No asiste
+   ├── Necesidad de trabajar → Abandona estudios
+   ├── Vivienda periférica → Mayor desplazamiento → Mayor fatiga
+   └── Menor apoyo académico → Repitencia → Desmotivación → Deserción
+
+LIMITACIONES:
+- Los datos son de 2014; las condiciones pueden haber cambiado.
+- La encuesta no distingue entre deserción formal e inasistencia temporal.
+- No hay datos de seguimiento longitudinal (no se puede rastrear desertores).

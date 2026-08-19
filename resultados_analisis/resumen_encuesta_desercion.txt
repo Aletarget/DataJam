@@ -1,0 +1,50 @@
+
+RESUMEN: ANÁLISIS ENCUESTA DISTRITAL DE PERCEPCIÓN + DESERCIÓN ESCOLAR
+========================================================================
+Fuente: Encuesta Distrital de Percepción - Año Móvil 2025 + Tasas de
+Deserción por UPL (Secretaría de Educación, 2024)
+
+UPLs analizadas: 30
+Total encuestados: 13082
+
+CORRELACIONES SIGNIFICATIVAS (p < 0.05) con Tasa de Deserción:
+  • % Ingresos precarios: r = -0.4327 (p = 0.0169)
+  • % Estrato 1-2: r = -0.4154 (p = 0.0224)
+  • % Desempleado: r = -0.5467 (p = 0.0018)
+  • Prom. mejora economía hogar: r = 0.4278 (p = 0.0184)
+
+INTERPRETACIÓN DE LAS CORRELACIONES NEGATIVAS:
+- Las correlaciones negativas (ej. % desempleado vs deserción r=-0.55)
+  parecen contra-intuitivas pero revelan un fenómeno importante:
+  
+  • UPLs como Chapinero (UPL24), Teusaquillo (UPL32) y Barrios Unidos (UPL33)
+    tienen ALTA deserción pero BAJA pobreza percibida.
+  • UPLs como San Cristóbal (UPL05), Ciudad Bolívar (UPL04) tienen ALTA
+    pobreza pero deserción menor al promedio.
+
+- Esto se explica porque la deserción OFICIAL incluye colegios públicos
+  en TODAS las zonas, y en zonas de estrato medio-alto puede haber:
+  • Mayor presión académica → deserción por rendimiento.
+  • Población flotante (estudiantes que vienen de otras zonas).
+  • Movilidad: estudiantes que se mueven entre colegios/localidades.
+
+- La variable "Mejora economía del hogar" (r=+0.43, p=0.018) es POSITIVA,
+  lo que indica que donde las personas perciben mejora económica HAY MÁS
+  deserción. Esto podría reflejar que en zonas dinámicas económicamente
+  los jóvenes abandonan el estudio para trabajar.
+
+HALLAZGO MATIZADO:
+→ La relación pobreza-deserción NO es lineal ni simple a nivel de UPL.
+→ Las UPLs más pobres (Ciudad Bolívar sur, Usme) tienen alta reprobación
+  pero no necesariamente la mayor deserción oficial.
+→ Esto matiza la hipótesis inicial: la pobreza se asocia más con bajo
+  rendimiento (reprobación) que con abandono directo (deserción).
+→ Se sugiere que la deserción tiene múltiples causas: no solo pobreza
+  sino también movilidad, presión académica y oportunidades laborales.
+
+PRECAUCIÓN METODOLÓGICA:
+- La encuesta mide PERCEPCIÓN en hogares, no condiciones objetivas.
+- La deserción corresponde a 2024, la encuesta a año móvil 2025.
+- Los estudiantes pueden ir a colegios fuera de su UPL de residencia.
+- La UPL donde está el colegio no es necesariamente donde vive el estudiante.
+- Se recomienda cruzar con matrícula y datos de movilidad escolar.

@@ -1,0 +1,11 @@
+# Archivos grandes (descargar desde datos abiertos)
+EncuestaMultipropocito/em2014.csv
+EncuestaMultipropocito/.~lock.*
+
+# Lock files
+EncuestaDistrital/.~lock.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
