@@ -1,18 +1,31 @@
-# Archivos grandes (descargar desde datos abiertos)
-EncuestaMultipropocito/em2021.csv
-EncuestaMultipropocito/.~lock.*
+# Datos descargados (se obtienen con scripts/descargar_datos.py)
+data/
 
-# Lock files
-EncuestaDistrital/.~lock.*
+# Resultados generados (se regeneran con analisis_final.py)
+output/*.png
+output/*.txt
+output/*.csv
+!output/.gitkeep
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
 .venv/
+venv/
+env/
+*.egg-info/
 
-# Variables de entorno y credenciales
-.env
-.env.local
-.env.production
-*.pem
-*.key
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+.~lock.*

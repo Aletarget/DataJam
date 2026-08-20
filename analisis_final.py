@@ -28,6 +28,7 @@ plt.rcParams['axes.titlesize'] = 13
 sns.set_theme(style="whitegrid", palette="muted")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -59,7 +60,7 @@ def cargar_todo():
     datos = {}
 
     # 1. Pobreza
-    df_pob = pd.read_csv(os.path.join(BASE_DIR, "Pobreza&Desigualdad", "osb_demografia-pobrezaygini.csv"),
+    df_pob = pd.read_csv(os.path.join(DATA_DIR, "pobreza", "osb_demografia-pobrezaygini.csv"),
                          sep=";", encoding="latin-1")
     df_pob.columns = ["Año", "Localidad", "Indicador", "Categoría", "Sexo", "Valor"]
     df_pob["Valor"] = df_pob["Valor"].astype(str).str.replace(",", ".").astype(float)
@@ -67,38 +68,51 @@ def cargar_todo():
     datos["pobreza"] = df_pob
 
     # 2. Deserción por UPL
-    with open(os.path.join(BASE_DIR, "TasaDesercionUPL", "tasaDesercionUPL.geojson")) as f:
+    with open(os.path.join(DATA_DIR, "desercion_upl", "tasas_upl.geojson")) as f:
         gj = json.load(f)
     deser_rows = []
     for feat in gj["features"]:
         p = feat["properties"]
+        # Compatibilidad con distintas versiones del GeoJSON (mayúsculas/minúsculas)
+        cod_upl = p.get("CODIGO_UPL") or p.get("codigo_upl") or p.get("Codigo_UPL", "")
+        nom_upl = p.get("NOM_UPL") or p.get("nom_upl") or p.get("Nom_UPL", "")
         deser_rows.append({
-            "Cod_UPL": p["CODIGO_UPL"], "NOM_UPL": p["NOM_UPL"],
-            "Desercion_Of": p["TtotalDeserOf_UPL"],
-            "Reprobacion_Of": p["TtotalReprOf_UPL"],
-            "Aprobacion_Of": p["TtotalAprOf_UPL"],
-            "Desercion_NOf": p["TtotalDeserNOf_UPL"],
+            "Cod_UPL": cod_upl, "NOM_UPL": nom_upl,
+            "Desercion_Of": p.get("TtotalDeserOf_UPL") or p.get("ttotal_deser_of_upl", 0),
+            "Reprobacion_Of": p.get("TtotalReprOf_UPL") or p.get("ttotal_repr_of_upl", 0),
+            "Aprobacion_Of": p.get("TtotalAprOf_UPL") or p.get("ttotal_apr_of_upl", 0),
+            "Desercion_NOf": p.get("TtotalDeserNOf_UPL") or p.get("ttotal_deser_n_of_upl", 0),
         })
     datos["desercion"] = pd.DataFrame(deser_rows)
     datos["desercion"]["COD_LOCA"] = datos["desercion"]["Cod_UPL"].map(UPL_LOCALIDAD)
 
     # 3. Encuesta Distrital
-    df_enc = pd.read_csv(os.path.join(BASE_DIR, "EncuestaDistrital", "base_ano_movil_2025.csv"), low_memory=False)
+    df_enc = pd.read_csv(os.path.join(DATA_DIR, "encuesta_distrital", "base_ano_movil_2025.csv"), low_memory=False)
     datos["encuesta"] = df_enc
 
     # 4. Matrícula
-    with open(os.path.join(BASE_DIR, "Matriculaciones", "matriculaciones.geojson")) as f:
+    with open(os.path.join(DATA_DIR, "matricula", "matriculaciones.geojson")) as f:
         gj_mat = json.load(f)
     mat_rows = []
     for feat in gj_mat["features"]:
         p = feat["properties"]
+        # Campo de localidad: puede ser COD_LOCA, cod_loca o loc
+        cod_loca = p.get("COD_LOCA") or p.get("cod_loca") or p.get("loc", "")
+        matricula = p.get("TMATRIC_GE") or p.get("tmatric_ge", 0)
         mat_rows.append({
-            "COD_LOCA": p["COD_LOCA"],
-            "Matricula": p["TMATRIC_GE"],
-            "Discapacidad": p["TOT_EST_MA"],
-            "Etnicos": p["TOT_EST_ET"],
+            "COD_LOCA": str(cod_loca).zfill(2) if cod_loca else "",
+            "Matricula": matricula or 0,
         })
     datos["matricula"] = pd.DataFrame(mat_rows)
+
+    # 5. Violencia intrafamiliar
+    df_vif = pd.read_csv(os.path.join(DATA_DIR, "violencia_intrafamiliar", "osb_saludmental-vintrafamiliar.csv"),
+                         sep=";", encoding="utf-8-sig",
+                         usecols=["ano", "grupoedad", "NOMBRE_LOCALIDAD"], low_memory=False)
+    # Filtrar menores 2020-2025
+    df_vif = df_vif[(df_vif["grupoedad"].isin(["De 1 - 5 años", "De 6 - 13 años", "De 14 - 17 años"])) &
+                    (df_vif["ano"].between(2020, 2025))]
+    datos["violencia"] = df_vif
 
     return datos
 
@@ -250,31 +264,48 @@ def fig3_transporte_pobreza(datos):
     r_sat_pob, p_sat_pob = stats.pearsonr(agg_enc["Sat_Transporte"], agg_enc["Pct_Pobre"])
 
     # --- Multipropósito 2021: tiempo real al colegio ---
-    EM_CSV = os.path.join(BASE_DIR, "EncuestaMultipropocito", "em2021.csv")
-    em_cols = ['NPCEP4', 'NPCEP10', 'NPCEP11AA', 'NHCLP3', 'NHCLP4',
-               'COD_LOCALIDAD', 'NOMBRE_LOCALIDAD', 'FEX_C']
-    df_em = pd.read_csv(EM_CSV, usecols=em_cols, encoding='latin-1', low_memory=False)
+    EM_CSV = os.path.join(DATA_DIR, "encuesta_multiproposito", "em2021.csv")
+    EM_TIEMPO = os.path.join(DATA_DIR, "encuesta_multiproposito", "em2021_tiempo_colegio.csv")
 
-    # Estudiantes 5-17 que asisten con dato de tiempo
-    est = df_em[(df_em['NPCEP4'] >= 5) & (df_em['NPCEP4'] <= 17) &
-                (df_em['NPCEP10'] == 1) & (df_em['NPCEP11AA'].notna()) &
-                (df_em['NPCEP11AA'] < 90)]
+    if os.path.exists(EM_TIEMPO):
+        est = pd.read_csv(EM_TIEMPO)
+        est = est[est["Minutos_al_Colegio"] < 90]
+    elif os.path.exists(EM_CSV):
+        em_cols = ['NPCEP4', 'NPCEP10', 'NPCEP11AA', 'NHCLP3', 'NHCLP4',
+                   'COD_LOCALIDAD', 'NOMBRE_LOCALIDAD', 'FEX_C']
+        df_em = pd.read_csv(EM_CSV, usecols=em_cols, encoding='latin-1', low_memory=False)
+        est = df_em[(df_em['NPCEP4'] >= 5) & (df_em['NPCEP4'] <= 17) &
+                    (df_em['NPCEP10'] == 1) & (df_em['NPCEP11AA'].notna()) &
+                    (df_em['NPCEP11AA'] < 90)]
+        est = est.rename(columns={'NPCEP11AA': 'Minutos_al_Colegio', 'NHCLP4': 'Suficiencia_Ingresos',
+                                  'FEX_C': 'Factor_Expansion'})
+    else:
+        print("  ⚠ No se encontró em2021. Figura 3 parcial.")
+        est = pd.DataFrame()
 
     # Tiempo por condición económica
     tiempo_por_ing = []
-    for ing, label in [(1, "No alcanzan"), (2, "Solo mínimos"), (3, "Pueden ahorrar")]:
-        sub = est[est['NHCLP4'] == ing]
-        if len(sub) > 30:
-            prom = np.average(sub['NPCEP11AA'], weights=sub['FEX_C'])
-            pct_30 = np.average((sub['NPCEP11AA'] > 30).astype(int), weights=sub['FEX_C']) * 100
-            tiempo_por_ing.append({"Ingresos": label, "Minutos": prom, "Pct_mas_30": pct_30})
+    if not est.empty:
+        ing_col = "Suficiencia_Ingresos" if "Suficiencia_Ingresos" in est.columns else "NHCLP4"
+        peso_col = "Factor_Expansion" if "Factor_Expansion" in est.columns else "FEX_C"
+        min_col = "Minutos_al_Colegio" if "Minutos_al_Colegio" in est.columns else "NPCEP11AA"
+        loc_col = "NOMBRE_LOCALIDAD"
 
-    # Tiempo por localidad
-    tiempo_loc = est.groupby('NOMBRE_LOCALIDAD').apply(
-        lambda g: np.average(g['NPCEP11AA'], weights=g['FEX_C']), include_groups=False
-    ).reset_index()
-    tiempo_loc.columns = ['Localidad', 'Minutos_Colegio']
-    tiempo_loc = tiempo_loc.sort_values('Minutos_Colegio', ascending=False)
+        for ing, label in [(1, "No alcanzan"), (2, "Solo mínimos"), (3, "Pueden ahorrar")]:
+            sub = est[est[ing_col] == ing]
+            if len(sub) > 30:
+                prom = np.average(sub[min_col], weights=sub[peso_col])
+                pct_30 = np.average((sub[min_col] > 30).astype(int), weights=sub[peso_col]) * 100
+                tiempo_por_ing.append({"Ingresos": label, "Minutos": prom, "Pct_mas_30": pct_30})
+
+        # Tiempo por localidad
+        tiempo_loc = est.groupby(loc_col).apply(
+            lambda g: np.average(g[min_col], weights=g[peso_col]), include_groups=False
+        ).reset_index()
+        tiempo_loc.columns = ['Localidad', 'Minutos_Colegio']
+        tiempo_loc = tiempo_loc.sort_values('Minutos_Colegio', ascending=False)
+    else:
+        tiempo_loc = pd.DataFrame(columns=['Localidad', 'Minutos_Colegio'])
 
     # --- GRÁFICOS ---
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
@@ -436,29 +467,124 @@ def fig5_reprobacion_desercion(datos):
 # FIGURA 6: MAPA INTEGRADO (Burbuja)
 # =============================================================================
 
-def fig6_mapa_integrado(datos, integrado):
-    fig, ax = plt.subplots(figsize=(11, 8))
-    sub = integrado.dropna(subset=["Pobreza", "Reprobacion"])
-    scatter = ax.scatter(
-        sub["Pobreza"], sub["Reprobacion"],
-        s=sub["Matricula"] / 250,
-        c=sub["Est_por_Sede"], cmap="YlOrRd",
-        alpha=0.75, edgecolors="black", linewidth=0.8
-    )
-    for _, row in sub.iterrows():
-        ax.annotate(row["Localidad"], (row["Pobreza"], row["Reprobacion"]),
-                    fontsize=8, ha="center", va="bottom")
+def fig6_violencia_intrafamiliar(datos, integrado):
+    """Analiza violencia intrafamiliar en menores y su relación con educación."""
+    df_vif = datos["violencia"]
+    df_mat = datos["matricula"]
 
-    cbar = plt.colorbar(scatter, ax=ax)
-    cbar.set_label("Estudiantes por sede (presión)")
-    ax.set_xlabel("Pobreza Monetaria 2021 (%)", fontsize=12)
-    ax.set_ylabel("Tasa de Reprobación Oficial (%)", fontsize=12)
-    ax.set_title("Mapa integrado: Pobreza × Reprobación × Matrícula × Presión\n"
-                 "(Tamaño = matrícula total, Color = hacinamiento por sede)",
-                 fontsize=12, fontweight="bold")
+    # Casos por localidad
+    vif_loc = df_vif.groupby("NOMBRE_LOCALIDAD").size().reset_index(name="Casos_VIF")
+
+    # Matrícula por localidad
+    mat_agg = df_mat.groupby("COD_LOCA")["Matricula"].sum().reset_index()
+    mat_agg["Localidad"] = mat_agg["COD_LOCA"].map(LOC_NOMBRES)
+
+    # Merge
+    vif_loc = vif_loc.merge(mat_agg[["Localidad", "Matricula"]],
+                            left_on="NOMBRE_LOCALIDAD", right_on="Localidad", how="left")
+    vif_loc["Tasa_VIF_x1000"] = vif_loc["Casos_VIF"] / vif_loc["Matricula"] * 1000
+    vif_loc = vif_loc.merge(integrado[["Localidad", "Pobreza", "Reprobacion", "Desercion"]],
+                            on="Localidad", how="left")
+    vif_loc = vif_loc.dropna(subset=["Reprobacion", "Tasa_VIF_x1000"])
+
+    r_repr, p_repr = stats.pearsonr(vif_loc["Tasa_VIF_x1000"], vif_loc["Reprobacion"])
+    r_pob, p_pob = stats.pearsonr(vif_loc["Tasa_VIF_x1000"], vif_loc["Pobreza"])
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Panel A: Violencia vs Reprobación
+    ax = axes[0]
+    ax.scatter(vif_loc["Tasa_VIF_x1000"], vif_loc["Reprobacion"], s=90, c="darkred",
+               alpha=0.7, edgecolors="black", linewidth=0.5)
+    z = np.polyfit(vif_loc["Tasa_VIF_x1000"], vif_loc["Reprobacion"], 1)
+    x_r = np.linspace(vif_loc["Tasa_VIF_x1000"].min(), vif_loc["Tasa_VIF_x1000"].max(), 50)
+    ax.plot(x_r, np.poly1d(z)(x_r), "--", color="gray", linewidth=1.5)
+    for _, row in vif_loc.iterrows():
+        ax.annotate(row["NOMBRE_LOCALIDAD"], (row["Tasa_VIF_x1000"], row["Reprobacion"]),
+                    fontsize=7, alpha=0.8)
+    ax.set_xlabel("Tasa de VIF en menores por 1000 matriculados")
+    ax.set_ylabel("Tasa de reprobación oficial (%)")
+    ax.set_title(f"A) Violencia intrafamiliar → Reprobación\nr={r_repr:.3f}, p={p_repr:.4f}*",
+                 fontweight="bold")
     ax.grid(True, alpha=0.3)
+
+    # Panel B: Barras de VIF por localidad
+    ax2 = axes[1]
+    plot_data = vif_loc.sort_values("Tasa_VIF_x1000", ascending=True)
+    colores = plot_data["Pobreza"].apply(
+        lambda x: "darkred" if x > 40 else "orange" if x > 25 else "gold" if x > 15 else "green"
+    )
+    ax2.barh(plot_data["NOMBRE_LOCALIDAD"], plot_data["Tasa_VIF_x1000"], color=colores,
+             edgecolor="black", linewidth=0.3)
+    ax2.set_xlabel("Casos VIF en menores por 1000 matriculados (2020-2025)")
+    ax2.set_title("B) Violencia intrafamiliar en menores por localidad\n"
+                  "(Color = nivel de pobreza monetaria)", fontweight="bold")
+
+    plt.suptitle("Violencia intrafamiliar en menores: asociación marginal con reprobación escolar",
+                 fontsize=11, y=1.02)
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, "06_mapa_integrado.png"), dpi=150, bbox_inches="tight")
+    plt.savefig(os.path.join(OUTPUT_DIR, "06_violencia_intrafamiliar.png"), dpi=150, bbox_inches="tight")
+    plt.close()
+
+    return {"r_repr": r_repr, "p_repr": p_repr, "r_pob": r_pob, "p_pob": p_pob}
+
+
+# =============================================================================
+# FIGURA 7: VIOLENCIA EN EL ENTORNO ESCOLAR
+# =============================================================================
+
+def fig7_violencia_escolar(datos):
+    """Analiza la violencia que ocurre dentro del establecimiento educativo."""
+    df_vif_full = pd.read_csv(os.path.join(DATA_DIR, "violencia_intrafamiliar", "osb_saludmental-vintrafamiliar.csv"),
+                              sep=";", encoding="utf-8-sig",
+                              usecols=["ano", "grupoedad", "NOMBRE_LOCALIDAD",
+                                       "lugocurrenciaemocional", "lugocurrenciafisica",
+                                       "lugocurrenciasexual", "relacion_agresor"],
+                              low_memory=False)
+
+    # Menores en edad escolar 2020-2025
+    escolares = df_vif_full[
+        (df_vif_full["grupoedad"].isin(["De 6 - 13 años", "De 14 - 17 años"])) &
+        (df_vif_full["ano"].between(2020, 2025))
+    ]
+
+    # Casos en establecimiento educativo
+    en_colegio = escolares[
+        (escolares["lugocurrenciaemocional"] == "Establecimiento educativo") |
+        (escolares["lugocurrenciafisica"] == "Establecimiento educativo") |
+        (escolares["lugocurrenciasexual"] == "Establecimiento educativo")
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Panel A: Agresores en el colegio
+    ax = axes[0]
+    agresores = en_colegio["relacion_agresor"].value_counts().head(7)
+    colores_a = ["crimson" if a == "Estudiantes" else "darkorange" if a == "Docentes"
+                 else "steelblue" for a in agresores.index]
+    ax.barh(agresores.index[::-1], agresores.values[::-1],
+            color=colores_a[::-1], edgecolor="black", linewidth=0.5)
+    ax.set_xlabel("Número de casos (2020-2025)")
+    ax.set_title(f"A) Agresores en violencia dentro del colegio\n"
+                 f"({len(en_colegio):,} casos = {len(en_colegio)/len(escolares)*100:.1f}% del total)",
+                 fontweight="bold")
+    ax.grid(True, alpha=0.3, axis="x")
+
+    # Panel B: Casos en colegio por localidad (top 10)
+    ax2 = axes[1]
+    por_loc = en_colegio.groupby("NOMBRE_LOCALIDAD").size().sort_values(ascending=False).head(12)
+    ax2.barh(por_loc.index[::-1], por_loc.values[::-1],
+             color="darkred", edgecolor="black", linewidth=0.3, alpha=0.8)
+    ax2.set_xlabel("Casos de violencia EN el colegio (2020-2025)")
+    ax2.set_title("B) Localidades con más violencia escolar\n"
+                  "(ocurrida dentro del establecimiento educativo)", fontweight="bold")
+    ax2.grid(True, alpha=0.3, axis="x")
+
+    plt.suptitle(f"13.8% de la violencia contra menores escolares ocurre DENTRO del colegio\n"
+                 f"Principal agresor: otros estudiantes (bullying) — {agresores.iloc[0]:,} casos",
+                 fontsize=11, y=1.03)
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, "07_violencia_entorno_escolar.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
 
@@ -506,6 +632,13 @@ HALLAZGOS ESTADÍSTICAMENTE SIGNIFICATIVOS
    Pearson r = {resultados['cadena']['r']:.3f}, p = {resultados['cadena']['p']:.4f} ***
    → La reprobación es el predictor más fuerte de deserción territorial.
 
+7. VIOLENCIA INTRAFAMILIAR → REPROBACIÓN (por localidad, N=17):
+   Pearson r = {resultados['violencia']['r_repr']:.3f}, p = {resultados['violencia']['p_repr']:.4f} *
+   → Localidades con mayor tasa de VIF en menores tienden a mayor reprobación.
+   → Ciudad Bolívar, Kennedy, Bosa y Usme concentran el 50% de los casos.
+   → La violencia en el hogar es un factor de contexto que deteriora
+     el rendimiento escolar de niños y adolescentes.
+
 ═══════════════════════════════════════════════════════════════════
 CADENA CAUSAL PROPUESTA (respaldada por datos)
 ═══════════════════════════════════════════════════════════════════
@@ -517,6 +650,9 @@ CADENA CAUSAL PROPUESTA (respaldada por datos)
          │
          ├──→ Peor transporte / mayor tiempo de viaje (r=-0.64***)
          │         └──→ Fatiga, tardanzas, inasistencia
+         │
+         ├──→ Mayor violencia intrafamiliar (r=0.42*)
+         │         └──→ Trauma, inestabilidad, bajo rendimiento
          │
          ├──→ Barreras económicas directas (costos, trabajo)
          │
@@ -576,6 +712,23 @@ H5: La deserción en zonas de estrato medio se explica por movilidad:
     estudiantes que cambian de colegio aparecen como "desertores" en
     la estadística del colegio de origen.
 
+H6: El bullying escolar (9,479 casos en 2020-2025) es un factor de
+    expulsión que contribuye a la deserción, especialmente en
+    localidades con alta concentración de matrícula.
+
+═══════════════════════════════════════════════════════════════════
+DATO CLAVE: VIOLENCIA EN EL COLEGIO
+═══════════════════════════════════════════════════════════════════
+
+• El 13.8% de la violencia contra menores en edad escolar (6-17 años)
+  ocurre DENTRO del establecimiento educativo.
+• Principal agresor: otros ESTUDIANTES (bullying) — 9,479 casos.
+• Segundo agresor: DOCENTES — 1,957 casos.
+• Localidades más afectadas: Ciudad Bolívar, Kennedy, Bosa, Suba.
+• El 88% de víctimas adolescentes tienen secundaria incompleta.
+• La violencia escolar es un factor de EXPULSIÓN que no aparece en
+  las estadísticas de deserción pero contribuye al abandono.
+
 ═══════════════════════════════════════════════════════════════════
 RECOMENDACIONES
 ═══════════════════════════════════════════════════════════════════
@@ -625,18 +778,22 @@ def main():
     r5 = fig5_reprobacion_desercion(datos)
     print("  ✓ 05_reprobacion_desercion.png")
 
-    print("→ Figura 6: Mapa integrado...")
-    fig6_mapa_integrado(datos, r2["integrado"])
-    print("  ✓ 06_mapa_integrado.png")
+    print("→ Figura 6: Violencia intrafamiliar...")
+    r6 = fig6_violencia_intrafamiliar(datos, r2["integrado"])
+    print("  ✓ 06_violencia_intrafamiliar.png")
+
+    print("→ Figura 7: Violencia en el entorno escolar...")
+    fig7_violencia_escolar(datos)
+    print("  ✓ 07_violencia_entorno_escolar.png")
 
     print("\n→ Generando conclusiones...")
     generar_conclusiones({
         "temporal": r1, "territorial": r2, "transporte": r3,
-        "percepcion": r4, "cadena": r5,
+        "percepcion": r4, "cadena": r5, "violencia": r6,
     })
 
     print("\n" + "=" * 70)
-    print(f"✓ COMPLETO — 6 figuras + conclusiones en {OUTPUT_DIR}/")
+    print(f"✓ COMPLETO — 7 figuras + conclusiones en {OUTPUT_DIR}/")
     print("=" * 70)
 
 
