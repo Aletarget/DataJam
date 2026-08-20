@@ -1,19 +1,44 @@
-# Problemas económicos y sus consecuencias en el estudio — DataJam Edición 4
+# Problemas Económicos y Deserción Escolar en Bogotá — DataJam Edición 4
 
-## Descripción del problema
+**Universidad Distrital Francisco José de Caldas**
 
-Las dificultades económicas de los hogares son uno de los factores más determinantes en la permanencia escolar y universitaria en Bogotá. Los hogares en condición de pobreza monetaria enfrentan mayores barreras para sostener los costos directos e indirectos de la educación (transporte, materiales, tiempo dedicado al estudio frente a la necesidad de generar ingresos), lo que se traduce en mayores tasas de deserción, especialmente en las localidades del sur y periferia de la ciudad.
+---
 
-**Pregunta analítica:** ¿Existe una relación significativa entre el nivel de pobreza monetaria por localidad y la tasa de deserción escolar en colegios oficiales de Bogotá?
+## Pregunta Analítica
 
-**Hipótesis:** Las localidades con mayor incidencia de pobreza monetaria presentan tasas de deserción escolar significativamente más altas, mediadas por factores como transporte, violencia intrafamiliar y hacinamiento escolar.
+> ¿Existe una relación significativa entre las condiciones socioeconómicas de los territorios (UPL) y la tasa de deserción escolar en colegios oficiales de Bogotá?
 
-## Estructura del repositorio
+## Hipótesis
+
+Las localidades con mayor incidencia de pobreza monetaria presentan tasas de deserción escolar más altas, mediadas por factores como transporte, reprobación, inseguridad alimentaria y acceso a empleo.
+
+## Hallazgo Principal
+
+La correlación directa pobreza → deserción **no es la más significativa**. El efecto es indirecto:
 
 ```
-├── scripts/                  # Scripts de descarga automática de datos
-│   └── descargar_datos.py    # Descarga todos los datasets del portal de datos abiertos
-├── data/                     # Datos descargados (no versionados, se generan con el script)
+POBREZA → [transporte + inseguridad alimentaria + bajo acceso educativo] → REPROBACIÓN → DESERCIÓN
+```
+
+La reprobación es el predictor más fuerte de deserción a nivel territorial (r=0.50, p<0.001).
+
+---
+
+## Estructura del Repositorio
+
+```
+DataJam/
+├── dashboard/                  # Dashboard interactivo (Plotly Dash)
+│   ├── app.py                  # Punto de entrada — python dashboard/app.py
+│   ├── data_loader.py          # Carga centralizada de datos
+│   ├── assets/style.css        # Estilos
+│   └── pages/
+│       ├── mapa.py             # Mapa choropleth por UPL
+│       ├── correlaciones.py    # Scatters dinámicos + heatmap
+│       └── temporal.py         # Evolución temporal IPM y pobreza
+├── scripts/
+│   └── descargar_datos.py      # Descarga automática de datasets
+├── data/                       # Datos (no versionados, se generan con el script)
 │   ├── pobreza/
 │   ├── desercion_upl/
 │   ├── vulnerabilidad_agua/
@@ -21,134 +46,140 @@ Las dificultades económicas de los hogares son uno de los factores más determi
 │   ├── matricula/
 │   ├── encuesta_multiproposito/
 │   └── encuesta_distrital/
-├── notebooks/                # Notebooks paso a paso del análisis
+├── notebooks/                  # Notebooks paso a paso
 │   ├── 01_descarga_y_exploracion.ipynb
 │   ├── 02_limpieza_e_integracion.ipynb
 │   ├── 03_analisis_exploratorio.ipynb
 │   └── 04_transporte_violencia_conclusiones.ipynb
-├── output/                   # Resultados: visualizaciones, tablas, reportes
-├── dashboard/                # Interactive Dash dashboard
-│   ├── app.py                # Entry point — run with: python dashboard/app.py
-│   ├── data_loader.py        # Centralized data loading for visualizations
-│   ├── assets/               # CSS and static assets
-│   └── pages/                # Dashboard pages (map, correlations, temporal, conclusions)
-├── analisis_final.py         # Script consolidado que ejecuta todo el análisis
-├── requirements.txt          # Dependencias del proyecto
-├── run.sh                    # Linux/macOS setup + run script
-├── run.ps1                   # Windows setup + run script
-├── plan_datos_datajam_desercion_bogota.md  # Plan metodológico detallado
-└── README.md
+├── output/                     # Resultados generados
+├── analisis_final.py           # Script consolidado de análisis
+├── requirements.txt            # Dependencias
+└── plan_datos_datajam_desercion_bogota.md
 ```
 
-## Inicio rápido
+---
+
+## Inicio Rápido
 
 ```bash
 # 1. Clonar y configurar entorno
-git clone <url-del-repositorio>
+git clone https://github.com/Aletarget/DataJam.git
 cd DataJam
-python -m venv .venv
-source .venv/bin/activate   # En Windows: .venv\Scripts\activate
+python -m venv venv
+# Windows:
+.\venv\Scripts\Activate.ps1
+# Linux/macOS:
+source venv/bin/activate
+
+# 2. Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Descargar datos desde el Portal de Datos Abiertos de Bogotá
+# 3. Descargar datos desde el Portal de Datos Abiertos de Bogotá
 python scripts/descargar_datos.py
 
-# 3. Ejecutar análisis completo
+# 4. Ejecutar análisis
 python analisis_final.py
 
-# 4. Lanzar el dashboard interactivo (Dash)
+# 5. Lanzar dashboard interactivo
 python dashboard/app.py
-# Abrir en el navegador: http://127.0.0.1:8050
-
-# 5. O seguir paso a paso con los notebooks
-jupyter notebook notebooks/
-
-# Alternativa: ejecutar todo el flujo anterior con un solo comando
-# Linux/macOS:  ./run.sh
-# Windows:      .\run.ps1
+# Abrir: http://127.0.0.1:8050
 ```
 
-## Dashboard interactivo
+---
 
-El proyecto incluye un dashboard [Dash](https://dash.plotly.com/) para explorar mapas territoriales, correlaciones, evolución temporal y conclusiones del análisis.
+## Dashboard Interactivo
 
-**Requisitos previos:** datos descargados en `data/` (paso 2) y salida del análisis en `output/` (paso 3). La página de conclusiones usa `output/CONCLUSIONES_FINALES.txt`, generado por `analisis_final.py`.
+Visualización dinámica construida con [Plotly Dash](https://dash.plotly.com/) que permite explorar los resultados de forma interactiva.
 
 ```bash
 python dashboard/app.py
 ```
 
-- **Comando correcto:** `python dashboard/app.py` (aplicación Dash; no usar `streamlit run`).
-- **URL:** http://127.0.0.1:8050 (puerto 8050, modo debug).
-- **Páginas:** Mapa Territorial (`/`), Correlaciones (`/correlaciones`), Evolución Temporal (`/temporal`), Conclusiones (`/conclusiones`).
+**URL:** http://127.0.0.1:8050
 
-## Descarga de datos
+### Páginas
 
-El script `scripts/descargar_datos.py` descarga automáticamente todos los datasets necesarios desde el [Portal de Datos Abiertos de Bogotá](https://datosabiertos.bogota.gov.co). No es necesario descargar nada manualmente.
+| Ruta | Página | Descripción |
+|------|--------|-------------|
+| `/` | Mapa Territorial | Choropleth interactivo por UPL con 9 indicadores seleccionables, filtro por localidad, KPIs y ranking |
+| `/correlaciones` | Correlaciones | Scatter plots dinámicos con selección de X/Y, línea de tendencia, estadísticas (Pearson/Spearman), heatmap |
+| `/temporal` | Evolución Temporal | Serie temporal IPM + privaciones educativas, pobreza por localidad con slider de año |
 
-```bash
-# Descargar todo (sin los archivos opcionales grandes)
-python scripts/descargar_datos.py --sin-opcionales
+### Requisitos
 
-# Descargar un dataset específico
-python scripts/descargar_datos.py --dataset pobreza
+- Datos descargados en `data/` (ejecutar `python scripts/descargar_datos.py`)
+- Dependencias instaladas (`pip install -r requirements.txt`)
 
-# Verificar qué datos hay disponibles localmente
-python scripts/descargar_datos.py --solo-verificar
+---
 
-# Descargar todo incluyendo la Encuesta Multipropósito (~500MB)
-python scripts/descargar_datos.py
-```
+## Fuentes de Datos
 
-## Fuentes de datos
+| Dataset | Fuente | Formato |
+|---------|--------|---------|
+| Tasa de Deserción por UPL | Secretaría de Educación de Bogotá (2024) | GeoJSON |
+| Pobreza y Desigualdad | DANE / SDP (2003-2025) | CSV |
+| Encuesta Distrital de Percepción | SDP - Año móvil 2025 | CSV |
+| Vulnerabilidad Calidad del Agua | Secretaría de Ambiente | GeoJSON |
+| Matrícula Jornada Única | Secretaría de Educación | GeoJSON |
+| Violencia Intrafamiliar | Secretaría de Salud | CSV |
+| Encuesta Multipropósito 2021 | SDP / DANE | CSV (opcional) |
 
-| Dataset | Fuente | Formato | Tamaño aprox. |
-|---|---|---|---|
-| Pobreza y Desigualdad | Sec. Distrital de Salud / DANE | CSV | 30 KB |
-| Tasa de Deserción por UPL | Sec. Distrital de Educación | GeoJSON | 2.5 MB |
-| Vulnerabilidad Calidad del Agua | Sec. Distrital de Ambiente | GeoJSON | 2.5 MB |
-| Violencia Intrafamiliar | Sec. Distrital de Salud | CSV | 110 MB |
-| Matrícula Jornada Única | Sec. Distrital de Educación | GeoJSON | 230 KB |
-| Encuesta Multipropósito 2021 | SDP / DANE | CSV | 500 MB (opcional) |
-| Encuesta Distrital Percepción 2025 | SDP | CSV | (opcional) |
+Todos los datos provienen de [Datos Abiertos Bogotá](https://datosabiertos.bogota.gov.co) bajo licencias CC-BY-4.0.
 
-Todos los datos provienen de fuentes públicas con licencia CC-BY-4.0 o CC-BY-SA-4.0.
-
-## Notebooks (paso a paso)
-
-| # | Notebook | Descripción |
-|---|---|---|
-| 01 | Descarga y Exploración | Descarga de datos, inspección de estructura, verificación de calidad |
-| 02 | Limpieza e Integración | Normalización de llaves geográficas, mapeo UPL→Localidad, tablas integradas |
-| 03 | Análisis Exploratorio | Correlaciones, series temporales IPM vs educación, gráficos de dispersión |
-| 04 | Transporte, Violencia y Conclusiones | Barreras de transporte, VIF, cadena causal y recomendaciones |
+---
 
 ## Metodología
 
-1. **Recolección:** descarga automática vía API CKAN del portal de datos abiertos
-2. **Integración:** cruce de tasas de deserción con indicadores de pobreza usando localidad/UPL como llave
-3. **Análisis exploratorio:** correlaciones Pearson, estadística descriptiva, identificación de patrones
-4. **Visualizaciones:** gráficos de dispersión, series temporales, mapas de barras por localidad
-5. **Hallazgos:** la pobreza no causa directamente deserción — el efecto es indirecto, mediado por reprobación
+1. **Recolección:** Descarga automática vía API CKAN del portal de datos abiertos
+2. **Integración:** Cruce de tasas de deserción con indicadores de pobreza usando UPL como llave territorial
+3. **Análisis exploratorio:** Correlaciones Pearson/Spearman, agregación ponderada de encuesta distrital por UPL
+4. **Índice de riesgo:** Construcción de índice de riesgo educativo combinando vulnerabilidad socioeconómica + deserción
+5. **Visualización:** Dashboard interactivo con mapas choropleth, scatters y series temporales
 
-## Hallazgo principal
+---
 
-La correlación directa pobreza→deserción NO es la más significativa. El efecto es **indirecto**:
+## Notebooks
 
-```
-POBREZA → [transporte + violencia + hacinamiento] → REPROBACIÓN → DESERCIÓN
-```
+| # | Notebook | Descripción |
+|---|----------|-------------|
+| 01 | Descarga y Exploración | Descarga de datos, inspección de estructura, verificación de calidad |
+| 02 | Limpieza e Integración | Normalización de llaves geográficas, mapeo UPL→Localidad, tablas integradas |
+| 03 | Análisis Exploratorio | Correlaciones, series temporales IPM vs educación, scatter plots |
+| 04 | Transporte, Violencia y Conclusiones | Barreras de transporte, VIF, cadena causal y recomendaciones |
 
-La reprobación es el predictor más fuerte de deserción a nivel territorial (r=0.50, p<0.001).
+---
+
+## Herramientas
+
+- **Python 3.13** — Lenguaje principal
+- **pandas / numpy / scipy** — Procesamiento y análisis estadístico
+- **Plotly Dash** — Dashboard interactivo (visualización web)
+- **Plotly Express** — Mapas choropleth, scatters, series temporales
+- **Matplotlib / Seaborn** — Gráficos estáticos complementarios
+- **Jupyter Notebooks** — Exploración paso a paso
+
+---
+
+## Resultados Clave
+
+- El IPM pasó de 4.1% (2018) a 7.5% (2020, pandemia) y descendió a 2.2% (2025)
+- La inasistencia escolar tuvo un pico de 6.0% en 2020, coincidiendo con el aumento del IPM
+- Las localidades con mayor pobreza monetaria (Ciudad Bolívar 57.8%, Usme 57.4%) mantienen brechas persistentes
+- La relación pobreza-deserción NO es lineal: está mediada por reprobación, transporte y acceso laboral
+- Las UPLs más pobres tienen alta reprobación pero no siempre la mayor deserción oficial
+
+---
 
 ## Equipo
 
 | Integrante | Rol |
 |---|---|
-| Juan Diego Lozada | Perfil técnico – análisis y visualización |
+| Juan Diego Lozada | Perfil técnico — análisis y visualización |
 | Alejandro Mora | Perfil de análisis sectorial / política pública |
 | Johan Tamara Flautero | Perfil complementario (temático/metodológico) |
 
+---
+
 ## Licencia
 
-Este proyecto se desarrolla en el marco del DataJam – Edición 4 (Alcaldía Mayor de Bogotá / Universidad Distrital Francisco José de Caldas). Los datos utilizados son de acceso público bajo licencias Creative Commons.
+Proyecto desarrollado en el marco del DataJam Edición 4 (Alcaldía Mayor de Bogotá / Universidad Distrital Francisco José de Caldas). Los datos utilizados son de acceso público bajo licencias Creative Commons (CC-BY-4.0).
