@@ -145,9 +145,9 @@ La reprobación es el predictor más fuerte de deserción a nivel territorial (r
 
 | Integrante | Rol |
 |---|---|
-| Nombre 1 | Perfil técnico – análisis y visualización |
-| Nombre 2 | Perfil de análisis sectorial / política pública |
-| Nombre 3 | Perfil complementario (temático/metodológico) |
+| Juan Diego Lozada | Perfil técnico – análisis y visualización |
+| Alejandro Mora | Perfil de análisis sectorial / política pública |
+| Johan Tamara Flautero | Perfil complementario (temático/metodológico) |
 
 ## Licencia
 
