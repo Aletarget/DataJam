@@ -15,6 +15,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import cargar_desercion_geojson, cargar_cruce_encuesta_desercion
+from theme import BOGOTA_RED_DARK, MAP_SCALES, CHART_LAYOUT
 
 dash.register_page(__name__, path="/", name="Mapa Territorial", order=0)
 
@@ -38,32 +39,36 @@ INDICADORES_MAPA = {
     "Pct_Desempleado": "% Desempleo",
 }
 
-ESCALAS_COLOR = {
-    "Desercion_Oficial": "Reds",
-    "Reprobacion_Oficial": "OrRd",
-    "Aprobacion_Oficial": "Greens",
-    "Pct_Pobre": "YlOrRd",
-    "Pct_Ing_Precarios": "YlOrRd",
-    "Pct_Inseg_Alimentaria": "Purples",
-    "Pct_Estrato_Bajo": "Blues",
-    "Pct_Bajo_Acceso_Educ": "RdPu",
-    "Pct_Desempleado": "Oranges",
-}
+ESCALAS_COLOR = MAP_SCALES
 
 # =============================================================================
 # LAYOUT
 # =============================================================================
 
 layout = dbc.Container([
-    # Header
     dbc.Row([
         dbc.Col([
-            html.H3("Mapa Territorial: Indicadores por UPL", className="fw-bold mb-1"),
-            html.P(
-                "Visualización geoespacial de indicadores educativos y socioeconómicos "
-                "por Unidad de Planeamiento Local (UPL) en Bogotá D.C.",
-                className="text-muted mb-3"
-            ),
+            html.Div([
+                html.H3("Mapa Territorial: Indicadores por UPL", className="fw-bold mb-1"),
+                html.P(
+                    "Visualización geoespacial de indicadores educativos y socioeconómicos "
+                    "por Unidad de Planeamiento Local (UPL) en Bogotá D.C.",
+                    className="text-muted mb-2",
+                ),
+                dbc.Alert([
+                    html.Span(
+                        "Insight rápido: la deserción no sigue una relación lineal simple con pobreza; "
+                        "la mediación por reprobación y transporte aparece en las conclusiones integradas."
+                    ),
+                    dbc.Button(
+                        "Ver conclusiones",
+                        href="/conclusiones",
+                        color="primary",
+                        size="sm",
+                        className="ms-2 mt-2 mt-md-0",
+                    ),
+                ], color="light", className="insight-card mb-0"),
+            ], className="section-hero mb-3"),
         ]),
     ]),
 
@@ -108,7 +113,10 @@ layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    dcc.Graph(id="mapa-choropleth", style={"height": "600px"}),
+                    dcc.Loading(
+                        dcc.Graph(id="mapa-choropleth", className="chart-main"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm"),
         ], lg=8),
@@ -118,7 +126,7 @@ layout = dbc.Container([
             # KPIs
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Resumen del Indicador", className="fw-bold text-primary mb-3"),
+                    html.H6("Resumen del Indicador", className="fw-bold text-primary mb-3 section-title"),
                     html.Div(id="mapa-kpis"),
                 ]),
             ], className="shadow-sm mb-3"),
@@ -126,7 +134,7 @@ layout = dbc.Container([
             # Ranking top 5
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Top 5 UPLs (Mayor Valor)", className="fw-bold text-danger mb-3"),
+                    html.H6("Top 5 UPLs (Mayor Valor)", className="fw-bold text-danger mb-3 section-title"),
                     html.Div(id="mapa-ranking"),
                 ]),
             ], className="shadow-sm"),
@@ -138,7 +146,10 @@ layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    dcc.Graph(id="mapa-barras"),
+                    dcc.Loading(
+                        dcc.Graph(id="mapa-barras", className="chart-medium"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm mt-3"),
         ]),
@@ -166,7 +177,7 @@ def actualizar_mapa(indicador, localidad):
         df = df[df["Localidad"] == localidad]
 
     label = INDICADORES_MAPA[indicador]
-    escala = ESCALAS_COLOR.get(indicador, "Viridis")
+    escala = ESCALAS_COLOR.get(indicador, MAP_SCALES["Desercion_Oficial"])
 
     # --- MAPA CHOROPLETH ---
     fig_mapa = px.choropleth_mapbox(
@@ -191,8 +202,9 @@ def actualizar_mapa(indicador, localidad):
     )
     fig_mapa.update_layout(
         margin={"r": 0, "t": 30, "l": 0, "b": 0},
-        title=dict(text=f"<b>{label}</b>", x=0.5, font_size=14),
+        title=dict(text=f"<b>{label}</b>", x=0.5, font_size=14, font_color=BOGOTA_RED_DARK),
         coloraxis_colorbar=dict(title=dict(text=label, font_size=11), thickness=15),
+        **CHART_LAYOUT,
     )
 
     # --- KPIs ---
@@ -206,35 +218,35 @@ def actualizar_mapa(indicador, localidad):
         dbc.Row([
             dbc.Col([
                 html.Div([
-                    html.Span("Promedio", className="text-muted small d-block"),
-                    html.Span(f"{media:.2f}%", className="fs-5 fw-bold text-primary"),
-                ], className="text-center"),
+                    html.Span("Promedio", className="kpi-title d-block"),
+                    html.Span(f"{media:.2f}%", className="fs-5 fw-bold text-primary kpi-value"),
+                ], className="text-center kpi-box p-2"),
             ], width=6),
             dbc.Col([
                 html.Div([
-                    html.Span("Mediana", className="text-muted small d-block"),
-                    html.Span(f"{mediana:.2f}%", className="fs-5 fw-bold text-info"),
-                ], className="text-center"),
+                    html.Span("Mediana", className="kpi-title d-block"),
+                    html.Span(f"{mediana:.2f}%", className="fs-5 fw-bold text-info kpi-value"),
+                ], className="text-center kpi-box p-2"),
             ], width=6),
         ], className="mb-3"),
         dbc.Row([
             dbc.Col([
                 html.Div([
-                    html.Span("Mínimo", className="text-muted small d-block"),
-                    html.Span(f"{minimo:.2f}%", className="fs-5 fw-bold text-success"),
-                ], className="text-center"),
+                    html.Span("Mínimo", className="kpi-title d-block"),
+                    html.Span(f"{minimo:.2f}%", className="fs-5 fw-bold text-success kpi-value"),
+                ], className="text-center kpi-box p-2"),
             ], width=4),
             dbc.Col([
                 html.Div([
-                    html.Span("Máximo", className="text-muted small d-block"),
-                    html.Span(f"{maximo:.2f}%", className="fs-5 fw-bold text-danger"),
-                ], className="text-center"),
+                    html.Span("Máximo", className="kpi-title d-block"),
+                    html.Span(f"{maximo:.2f}%", className="fs-5 fw-bold text-danger kpi-value"),
+                ], className="text-center kpi-box p-2"),
             ], width=4),
             dbc.Col([
                 html.Div([
-                    html.Span("UPLs", className="text-muted small d-block"),
-                    html.Span(f"{n_upls}", className="fs-5 fw-bold"),
-                ], className="text-center"),
+                    html.Span("UPLs", className="kpi-title d-block"),
+                    html.Span(f"{n_upls}", className="fs-5 fw-bold kpi-value"),
+                ], className="text-center kpi-box p-2"),
             ], width=4),
         ]),
     ])
@@ -266,17 +278,20 @@ def actualizar_mapa(indicador, localidad):
         hover_data={"Localidad": True, indicador: ":.2f"},
     )
     fig_barras.update_layout(
-        title=dict(text=f"<b>{label} por UPL</b>", x=0.5, font_size=14),
-        height=max(400, len(df) * 22),
+        title=dict(text=f"<b>{label} por UPL</b>", x=0.5, font_size=14, font_color=BOGOTA_RED_DARK),
+        height=450,
         margin={"t": 50, "b": 30},
         showlegend=False,
         yaxis=dict(tickfont=dict(size=10)),
         coloraxis_showscale=False,
+        **CHART_LAYOUT,
     )
-    # Línea de media
     fig_barras.add_vline(
-        x=media, line_dash="dash", line_color="black",
-        annotation_text=f"Media: {media:.2f}%", annotation_position="top",
+        x=media,
+        line_dash="dash",
+        line_color=BOGOTA_RED_DARK,
+        annotation_text=f"Media: {media:.2f}%",
+        annotation_position="top",
     )
 
     return fig_mapa, kpis, ranking, fig_barras

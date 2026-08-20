@@ -11,13 +11,18 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
-from scipy import stats
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import cargar_pobreza, obtener_serie_temporal_bogota
+from theme import (
+    BOGOTA_RED,
+    BOGOTA_RED_DARK,
+    BOGOTA_QUALITATIVE,
+    BOGOTA_SCALE_SEQUENTIAL,
+    CHART_LAYOUT,
+)
 
 dash.register_page(__name__, path="/temporal", name="Evolución Temporal", order=2)
 
@@ -53,15 +58,22 @@ PRIVACIONES = [c for c in serie_bogota.columns if c not in ["Año", "IPM"]]
 # =============================================================================
 
 layout = dbc.Container([
-    # Header
     dbc.Row([
         dbc.Col([
-            html.H3("Evolución Temporal: Pobreza e Indicadores Educativos", className="fw-bold mb-1"),
-            html.P(
-                "Análisis de la evolución del IPM, privaciones educativas y pobreza monetaria "
-                "en Bogotá D.C. entre 2003 y 2025.",
-                className="text-muted mb-3"
-            ),
+            html.Div([
+                html.H3("Evolución Temporal: Pobreza e Indicadores Educativos", className="fw-bold mb-1"),
+                html.P(
+                    "Análisis de la evolución del IPM, privaciones educativas y pobreza monetaria "
+                    "en Bogotá D.C. entre 2003 y 2025.",
+                    className="text-muted mb-2",
+                ),
+                dbc.Alert(
+                    "Contexto clave: el pico pandémico de 2020 alteró la dinámica de pobreza y privaciones "
+                    "educativas; compara localidades para ver persistencia de brechas.",
+                    color="light",
+                    className="insight-card mb-0",
+                ),
+            ], className="section-hero mb-3"),
         ]),
     ]),
 
@@ -84,7 +96,10 @@ layout = dbc.Container([
                             ),
                         ], md=3),
                         dbc.Col([
-                            dcc.Graph(id="temporal-ipm-educacion", style={"height": "450px"}),
+                            dcc.Loading(
+                                dcc.Graph(id="temporal-ipm-educacion", className="chart-medium"),
+                                type="default",
+                            ),
                         ], md=9),
                     ]),
                 ]),
@@ -121,7 +136,10 @@ layout = dbc.Container([
                             ),
                         ], md=8),
                     ], className="mb-3"),
-                    dcc.Graph(id="temporal-localidades-chart", style={"height": "450px"}),
+                    dcc.Loading(
+                        dcc.Graph(id="temporal-localidades-chart", className="chart-medium"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm"),
         ]),
@@ -149,7 +167,10 @@ layout = dbc.Container([
                             ),
                         ]),
                     ], className="mb-3"),
-                    dcc.Graph(id="temporal-barras-año", style={"height": "500px"}),
+                    dcc.Loading(
+                        dcc.Graph(id="temporal-barras-año", className="chart-medium"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm"),
         ]),
@@ -201,7 +222,7 @@ def actualizar_ipm_educacion(privaciones_seleccionadas):
             x=serie["Año"], y=serie["IPM"],
             mode="lines+markers",
             name="IPM",
-            line=dict(color="#c0392b", width=3),
+            line=dict(color=BOGOTA_RED, width=3),
             marker=dict(size=10),
             hovertemplate="Año: %{x}<br>IPM: %{y:.2f}%<extra></extra>",
         ),
@@ -211,14 +232,14 @@ def actualizar_ipm_educacion(privaciones_seleccionadas):
     # Sombrear zona pandemia
     fig.add_vrect(
         x0=2019.5, x1=2021.5,
-        fillcolor="rgba(255,0,0,0.05)", line_width=0,
+        fillcolor="rgba(200, 16, 46, 0.06)", line_width=0,
         annotation_text="COVID-19", annotation_position="top left",
         row=1, col=1,
     )
 
     # Panel inferior: Privaciones educativas
-    colores = px.colors.qualitative.Set2
-    for i, priv in enumerate(privaciones_seleccionadas):
+    colores = BOGOTA_QUALITATIVE
+    for i, priv in enumerate(privaciones_seleccionadas or []):
         if priv in serie.columns:
             fig.add_trace(
                 go.Scatter(
@@ -235,7 +256,7 @@ def actualizar_ipm_educacion(privaciones_seleccionadas):
     # Sombrear pandemia en panel inferior también
     fig.add_vrect(
         x0=2019.5, x1=2021.5,
-        fillcolor="rgba(255,0,0,0.05)", line_width=0,
+        fillcolor="rgba(200, 16, 46, 0.06)", line_width=0,
         row=2, col=1,
     )
 
@@ -246,6 +267,7 @@ def actualizar_ipm_educacion(privaciones_seleccionadas):
         margin={"t": 60, "b": 40},
         legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
         hovermode="x unified",
+        **CHART_LAYOUT,
     )
 
     return fig
@@ -275,15 +297,16 @@ def actualizar_localidades(indicador, localidades):
         df, x="Año", y="Valor", color="Localidad",
         markers=True,
         labels={"Valor": label, "Año": "Año"},
-        color_discrete_sequence=px.colors.qualitative.Bold,
+        color_discrete_sequence=BOGOTA_QUALITATIVE,
     )
 
     fig.update_traces(line=dict(width=2.5), marker=dict(size=8))
     fig.update_layout(
-        title=dict(text=f"<b>{label} por Localidad</b>", x=0.5, font_size=14),
+        title=dict(text=f"<b>{label} por Localidad</b>", x=0.5, font_size=14, font_color=BOGOTA_RED_DARK),
         margin={"t": 60, "b": 40},
         legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
         hovermode="x unified",
+        **CHART_LAYOUT,
     )
 
     # Agregar línea de Bogotá como referencia
@@ -297,7 +320,7 @@ def actualizar_localidades(indicador, localidades):
             x=bogota["Año"], y=bogota["Valor"],
             mode="lines",
             name="Bogotá (promedio)",
-            line=dict(color="black", width=2, dash="dash"),
+            line=dict(color=BOGOTA_RED_DARK, width=2, dash="dash"),
             opacity=0.6,
         ))
 
@@ -333,7 +356,7 @@ def actualizar_barras_año(año):
         df, x="Valor", y="Localidad",
         orientation="h",
         color="Valor",
-        color_continuous_scale="YlOrRd",
+        color_continuous_scale=BOGOTA_SCALE_SEQUENTIAL,
         labels={"Valor": "Pobreza Monetaria (%)", "Localidad": ""},
         hover_data={"Valor": ":.1f"},
     )
@@ -349,16 +372,22 @@ def actualizar_barras_año(año):
     if not bogota_val.empty:
         media_bog = bogota_val.iloc[0]
         fig.add_vline(
-            x=media_bog, line_dash="dash", line_color="black", line_width=2,
+            x=media_bog, line_dash="dash", line_color=BOGOTA_RED_DARK, line_width=2,
             annotation_text=f"Bogotá: {media_bog:.1f}%",
             annotation_position="top",
         )
 
     fig.update_layout(
-        title=dict(text=f"<b>Pobreza Monetaria por Localidad — {año}</b>", x=0.5, font_size=14),
+        title=dict(
+            text=f"<b>Pobreza Monetaria por Localidad — {año}</b>",
+            x=0.5,
+            font_size=14,
+            font_color=BOGOTA_RED_DARK,
+        ),
         margin={"t": 60, "b": 40},
         coloraxis_showscale=False,
         yaxis=dict(tickfont=dict(size=11)),
+        **CHART_LAYOUT,
     )
 
     return fig

@@ -6,11 +6,14 @@ Carga y procesa todos los datasets necesarios para las visualizaciones.
 import os
 import json
 import math
+import re
+from datetime import datetime
 import numpy as np
 import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
 
 # =============================================================================
@@ -314,3 +317,210 @@ def cargar_matricula_df():
             "Cod_Localidad": p.get("loc", ""),
         })
     return pd.DataFrame(registros)
+
+
+# =============================================================================
+# 8. CONCLUSIONES FINALES
+# =============================================================================
+
+def cargar_conclusiones_texto():
+    """Carga el archivo de conclusiones y su fecha de actualización."""
+    path = os.path.join(OUTPUT_DIR, "CONCLUSIONES_FINALES.txt")
+    if not os.path.exists(path):
+        return {
+            "existe": False,
+            "texto": "",
+            "actualizado": None,
+            "path": path,
+        }
+
+    with open(path, "r", encoding="utf-8") as f:
+        texto = f.read()
+
+    mtime = os.path.getmtime(path)
+    actualizado = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+    return {
+        "existe": True,
+        "texto": texto,
+        "actualizado": actualizado,
+        "path": path,
+    }
+
+
+def _es_divisor(linea):
+    s = linea.strip()
+    if not s:
+        return False
+    return all(c in "═=-" for c in s)
+
+
+def _es_titulo_seccion(linea):
+    s = linea.strip()
+    if not s or _es_divisor(s) or len(s) < 4:
+        return False
+    if re.match(r"^\d+\.", s):
+        return False
+    base = re.sub(r"\(.*\)", "", s).strip()
+    if not any(c.isalpha() for c in base):
+        return False
+    return base == base.upper()
+
+
+def parsear_conclusiones_por_seccion(texto):
+    """Parsea texto de conclusiones en bloques por encabezado en mayúsculas."""
+    secciones = {}
+    titulo_actual = "INTRO"
+    buffer = []
+
+    for linea in texto.splitlines():
+        if _es_titulo_seccion(linea):
+            if buffer:
+                secciones[titulo_actual] = "\n".join(buffer).strip()
+            titulo_actual = linea.strip()
+            buffer = []
+            continue
+        if _es_divisor(linea):
+            continue
+        buffer.append(linea)
+
+    if buffer:
+        secciones[titulo_actual] = "\n".join(buffer).strip()
+
+    return secciones
+
+
+def extraer_hallazgos_estadisticos(secciones):
+    """Extrae hallazgos numerados con r y p desde la sección de hallazgos."""
+    contenido = secciones.get("HALLAZGOS ESTADÍSTICAMENTE SIGNIFICATIVOS", "")
+    if not contenido:
+        return []
+
+    lineas = [l.rstrip() for l in contenido.splitlines() if l.strip()]
+    hallazgos = []
+    actual = None
+    pearson_re = re.compile(r"Pearson r\s*=\s*([+-]?\d+\.\d+),\s*p\s*=\s*([0-9.]+)\s*([*]*)")
+
+    for linea in lineas:
+        m_num = re.match(r"^(\d+)\.\s*(.*)$", linea.strip())
+        if m_num:
+            if actual:
+                hallazgos.append(actual)
+            actual = {
+                "indice": int(m_num.group(1)),
+                "titulo": m_num.group(2).strip(),
+                "pearson": None,
+                "p": None,
+                "estrellas": "",
+                "interpretacion": [],
+            }
+            continue
+
+        if actual is None:
+            continue
+
+        m_pearson = pearson_re.search(linea)
+        if m_pearson:
+            actual["pearson"] = float(m_pearson.group(1))
+            actual["p"] = float(m_pearson.group(2))
+            actual["estrellas"] = m_pearson.group(3)
+            continue
+
+        if linea.strip().startswith("→"):
+            actual["interpretacion"].append(linea.strip().lstrip("→").strip())
+
+    if actual:
+        hallazgos.append(actual)
+
+    for h in hallazgos:
+        p_val = h["p"]
+        if p_val is None:
+            h["nivel_significancia"] = "Sin dato"
+        elif p_val < 0.01:
+            h["nivel_significancia"] = "Alta (p<0.01)"
+        elif p_val < 0.05:
+            h["nivel_significancia"] = "Significativa (p<0.05)"
+        elif p_val < 0.10:
+            h["nivel_significancia"] = "Marginal (p<0.10)"
+        else:
+            h["nivel_significancia"] = "No significativa"
+
+    return hallazgos
+
+
+def validar_consistencia_hallazgos(hallazgos):
+    """Genera alertas básicas de consistencia narrativa-estadística."""
+    alertas = []
+
+    for h in hallazgos:
+        if h["p"] is None or h["pearson"] is None:
+            continue
+
+        esperado_estrellas = ""
+        if h["p"] < 0.01:
+            esperado_estrellas = "***"
+        elif h["p"] < 0.05:
+            esperado_estrellas = "**"
+        elif h["p"] < 0.10:
+            esperado_estrellas = "*"
+
+        if h["estrellas"] != esperado_estrellas:
+            alertas.append({
+                "tipo": "warning",
+                "mensaje": (
+                    f"Hallazgo {h['indice']}: estrellas '{h['estrellas'] or '-'}' no coinciden con p={h['p']:.4f}."
+                ),
+            })
+
+        if h["p"] >= 0.05:
+            alertas.append({
+                "tipo": "info",
+                "mensaje": (
+                    f"Hallazgo {h['indice']}: no es significativo al 5% (p={h['p']:.4f})."
+                ),
+            })
+
+        texto = " ".join(h["interpretacion"]).lower()
+        if any(k in texto for k in ["aument", "mayor", "más"]) and h["pearson"] < 0:
+            alertas.append({
+                "tipo": "warning",
+                "mensaje": (
+                    f"Hallazgo {h['indice']}: narrativa de aumento con correlación negativa (r={h['pearson']:.3f})."
+                ),
+            })
+        if any(k in texto for k in ["menor", "dismin", "menos"]) and h["pearson"] > 0:
+            alertas.append({
+                "tipo": "warning",
+                "mensaje": (
+                    f"Hallazgo {h['indice']}: narrativa de disminución con correlación positiva (r={h['pearson']:.3f})."
+                ),
+            })
+
+    return alertas
+
+
+def cargar_conclusiones_estructuradas():
+    """Carga conclusiones y retorna bloques listos para visualización."""
+    fuente = cargar_conclusiones_texto()
+    if not fuente["existe"]:
+        return {
+            "existe": False,
+            "error": "No se encontró output/CONCLUSIONES_FINALES.txt",
+            "actualizado": None,
+            "secciones": {},
+            "hallazgos": [],
+            "alertas": [],
+            "texto": "",
+        }
+
+    secciones = parsear_conclusiones_por_seccion(fuente["texto"])
+    hallazgos = extraer_hallazgos_estadisticos(secciones)
+    alertas = validar_consistencia_hallazgos(hallazgos)
+
+    return {
+        "existe": True,
+        "actualizado": fuente["actualizado"],
+        "secciones": secciones,
+        "hallazgos": hallazgos,
+        "alertas": alertas,
+        "texto": fuente["texto"],
+    }

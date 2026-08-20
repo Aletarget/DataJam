@@ -17,6 +17,13 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data_loader import cargar_cruce_encuesta_desercion
+from theme import (
+    BOGOTA_RED,
+    BOGOTA_RED_DARK,
+    BOGOTA_SCALE_HEATMAP,
+    BOGOTA_SCALE_SEQUENTIAL,
+    CHART_LAYOUT,
+)
 
 dash.register_page(__name__, path="/correlaciones", name="Correlaciones", order=1)
 
@@ -62,15 +69,22 @@ GRUPOS_VARIABLES = {
 # =============================================================================
 
 layout = dbc.Container([
-    # Header
     dbc.Row([
         dbc.Col([
-            html.H3("Explorador de Correlaciones", className="fw-bold mb-1"),
-            html.P(
-                "Selecciona variables para los ejes X e Y y explora la relación "
-                "entre condiciones socioeconómicas y resultados educativos por UPL.",
-                className="text-muted mb-3"
-            ),
+            html.Div([
+                html.H3("Explorador de Correlaciones", className="fw-bold mb-1"),
+                html.P(
+                    "Selecciona variables para los ejes X e Y y explora la relación "
+                    "entre condiciones socioeconómicas y resultados educativos por UPL.",
+                    className="text-muted mb-2",
+                ),
+                dbc.Alert(
+                    "Usa esta vista para evaluar fuerza y dirección de relaciones. "
+                    "La significancia estadística se resume en el panel lateral.",
+                    color="light",
+                    className="insight-card mb-0",
+                ),
+            ], className="section-hero mb-3"),
         ]),
     ]),
 
@@ -147,7 +161,10 @@ layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    dcc.Graph(id="corr-scatter", style={"height": "550px"}),
+                    dcc.Loading(
+                        dcc.Graph(id="corr-scatter", className="chart-main"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm"),
         ], lg=8),
@@ -156,7 +173,7 @@ layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Estadísticas de Correlación", className="fw-bold text-primary mb-3"),
+                    html.H6("Estadísticas de Correlación", className="fw-bold text-primary mb-3 section-title"),
                     html.Div(id="corr-stats"),
                 ]),
             ], className="shadow-sm mb-3"),
@@ -164,7 +181,7 @@ layout = dbc.Container([
             # Matriz de correlaciones rápida
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Top Correlaciones con Deserción", className="fw-bold text-danger mb-3"),
+                    html.H6("Top Correlaciones con Deserción", className="fw-bold text-danger mb-3 section-title"),
                     html.Div(id="corr-top"),
                 ]),
             ], className="shadow-sm"),
@@ -176,8 +193,11 @@ layout = dbc.Container([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Matriz de Correlaciones", className="fw-bold mb-2"),
-                    dcc.Graph(id="corr-heatmap", style={"height": "500px"}),
+                    html.H6("Matriz de Correlaciones", className="fw-bold mb-2 section-title"),
+                    dcc.Loading(
+                        dcc.Graph(id="corr-heatmap", className="chart-medium"),
+                        type="default",
+                    ),
                 ]),
             ], className="shadow-sm mt-3"),
         ]),
@@ -221,10 +241,10 @@ def actualizar_correlaciones(var_x, var_y, var_color, opciones):
     if var_color != "none" and var_color in df.columns:
         sub[var_color] = df.loc[sub.index, var_color]
         scatter_kwargs["color"] = var_color
-        scatter_kwargs["color_continuous_scale"] = "Viridis"
+        scatter_kwargs["color_continuous_scale"] = BOGOTA_SCALE_SEQUENTIAL
         scatter_kwargs["labels"][var_color] = VARIABLES.get(var_color, var_color)
     else:
-        scatter_kwargs["color_discrete_sequence"] = ["#e74c3c"]
+        scatter_kwargs["color_discrete_sequence"] = [BOGOTA_RED]
 
     if mostrar_etiquetas:
         scatter_kwargs["text"] = "Nom_UPL"
@@ -244,14 +264,15 @@ def actualizar_correlaciones(var_x, var_y, var_color, opciones):
         y_line = slope * x_line + intercept
         fig_scatter.add_trace(go.Scatter(
             x=x_line, y=y_line, mode="lines",
-            line=dict(color="gray", width=2, dash="dash"),
+            line=dict(color=BOGOTA_RED_DARK, width=2, dash="dash"),
             name=f"Tendencia (r={r:.3f})",
             showlegend=True,
         ))
 
     fig_scatter.update_layout(
-        title=dict(text=f"<b>{label_x} vs {label_y}</b>", x=0.5, font_size=14),
+        title=dict(text=f"<b>{label_x} vs {label_y}</b>", x=0.5, font_size=14, font_color=BOGOTA_RED_DARK),
         margin={"t": 60, "b": 50},
+        **CHART_LAYOUT,
     )
 
     # --- ESTADÍSTICAS ---
@@ -326,16 +347,17 @@ def actualizar_correlaciones(var_x, var_y, var_color, opciones):
         df_corr.values,
         x=labels_short,
         y=labels_short,
-        color_continuous_scale="RdBu_r",
+        color_continuous_scale=BOGOTA_SCALE_HEATMAP,
         zmin=-1, zmax=1,
         text_auto=".2f",
         aspect="auto",
     )
     fig_heatmap.update_layout(
-        title=dict(text="<b>Matriz de Correlaciones (Pearson)</b>", x=0.5, font_size=14),
+        title=dict(text="<b>Matriz de Correlaciones (Pearson)</b>", x=0.5, font_size=14, font_color=BOGOTA_RED_DARK),
         margin={"t": 60, "b": 50},
         xaxis=dict(tickangle=45, tickfont=dict(size=9)),
         yaxis=dict(tickfont=dict(size=9)),
+        **CHART_LAYOUT,
     )
 
     return fig_scatter, stats_content, top_content, fig_heatmap

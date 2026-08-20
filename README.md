@@ -27,8 +27,15 @@ Las dificultades económicas de los hogares son uno de los factores más determi
 │   ├── 03_analisis_exploratorio.ipynb
 │   └── 04_transporte_violencia_conclusiones.ipynb
 ├── output/                   # Resultados: visualizaciones, tablas, reportes
+├── dashboard/                # Interactive Dash dashboard
+│   ├── app.py                # Entry point — run with: python dashboard/app.py
+│   ├── data_loader.py        # Centralized data loading for visualizations
+│   ├── assets/               # CSS and static assets
+│   └── pages/                # Dashboard pages (map, correlations, temporal, conclusions)
 ├── analisis_final.py         # Script consolidado que ejecuta todo el análisis
 ├── requirements.txt          # Dependencias del proyecto
+├── run.sh                    # Linux/macOS setup + run script
+├── run.ps1                   # Windows setup + run script
 ├── plan_datos_datajam_desercion_bogota.md  # Plan metodológico detallado
 └── README.md
 ```
@@ -49,9 +56,31 @@ python scripts/descargar_datos.py
 # 3. Ejecutar análisis completo
 python analisis_final.py
 
-# 4. O seguir paso a paso con los notebooks
+# 4. Lanzar el dashboard interactivo (Dash)
+python dashboard/app.py
+# Abrir en el navegador: http://127.0.0.1:8050
+
+# 5. O seguir paso a paso con los notebooks
 jupyter notebook notebooks/
+
+# Alternativa: ejecutar todo el flujo anterior con un solo comando
+# Linux/macOS:  ./run.sh
+# Windows:      .\run.ps1
 ```
+
+## Dashboard interactivo
+
+El proyecto incluye un dashboard [Dash](https://dash.plotly.com/) para explorar mapas territoriales, correlaciones, evolución temporal y conclusiones del análisis.
+
+**Requisitos previos:** datos descargados en `data/` (paso 2) y salida del análisis en `output/` (paso 3). La página de conclusiones usa `output/CONCLUSIONES_FINALES.txt`, generado por `analisis_final.py`.
+
+```bash
+python dashboard/app.py
+```
+
+- **Comando correcto:** `python dashboard/app.py` (aplicación Dash; no usar `streamlit run`).
+- **URL:** http://127.0.0.1:8050 (puerto 8050, modo debug).
+- **Páginas:** Mapa Territorial (`/`), Correlaciones (`/correlaciones`), Evolución Temporal (`/temporal`), Conclusiones (`/conclusiones`).
 
 ## Descarga de datos
 
