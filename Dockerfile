@@ -6,18 +6,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Dependencias Python (solo las necesarias para el dashboard)
-COPY requirements-dashboard.txt .
-RUN pip install --no-cache-dir -r requirements-dashboard.txt
+# Dependencias Python
+COPY requirements-dashboard.txt requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-dashboard.txt
 
-# Copiar solo lo necesario para el dashboard (~12MB de datos)
+# Copiar scripts y código
+COPY scripts/ ./scripts/
 COPY dashboard/ ./dashboard/
-COPY data/desercion_upl/ ./data/desercion_upl/
-COPY data/encuesta_distrital/ ./data/encuesta_distrital/
-COPY data/pobreza/ ./data/pobreza/
-COPY output/CONCLUSIONES_FINALES.txt ./output/
-COPY output/tabla_integrada_localidad.csv ./output/
-COPY output/desercion_por_upl.csv ./output/
+COPY analisis_final.py .
+
+# Descargar datos y generar outputs necesarios
+RUN python scripts/descargar_datos.py --sin-opcionales && \
+    python analisis_final.py
 
 EXPOSE 8050
 
